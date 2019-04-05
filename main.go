@@ -2,11 +2,11 @@ package main
 
 import (
 	"encoding/csv"
+	"fmt"
 	"log"
 	"os"
 	"strconv"
 
-	"github.com/scylladb/go-set/iset"
 	"github.com/scylladb/go-set/u8set"
 )
 
@@ -18,42 +18,43 @@ func main() {
 		Solution: solution,
 	}
 
-	//startNums is used to remember the next gold(number) to try
-	startNums := [81]uint8{}
-	for i := 0; i < 81; i++ {
-		if su.Original[i] == 0 {
-			startNums[i] = 1
-		} else {
-			startNums[i] = 10
-		}
-	}
-
 	for i := 0; i >= 0 && i < 81; {
-		if startNums[i] > 9 {
+		if su.isPresetField(i) {
 			i = su.forwardNext(i)
 			continue
 		}
-		for maybeGold := startNums[i]; maybeGold <= uint8(9); maybeGold++ {
+		foundAGold := false
+		for maybeGold := su.Solution[i] + 1; maybeGold <= uint8(9); maybeGold++ {
 			su.Solution[i] = maybeGold
-			if !su.isValid3x3Square(i) || !su.isValidRow(i) || !su.isValidColumn(i) {
-				su.Solution[i] = 0
+			su.printSolution(su.Solution)
+			fmt.Println()
+			if !su.isAllValid(i) {
 				continue
 			}
-			//found a valid maybeGold
-			if su.Solution[i] > 0 {
-				startNums[i] = startNums[i] + 1
-				i = su.forwardNext(i)
-				break
-			}
+			foundAGold = true
+			break
 		}
-		i = su.backwardNext(i)
-	}
+		if foundAGold == false {
+			i = su.backwardNext(i)
+		} else {
 
+			i = su.forwardNext(i)
+		}
+	}
+	su.printSolution(su.Solution)
+}
+
+func (su *Sudoku) isAllValid(pos int) bool {
+	if !su.isValid3x3Square(pos) || !su.isValidRow(pos) || !su.isValidColumn(pos) {
+		return false
+	}
+	return true
 }
 
 func (su *Sudoku) backwardNext(i int) int {
+	su.Solution[i] = 0
 	for step := 1; step < i; step++ {
-		if su.Original[i-step] == 0 {
+		if !su.isPresetField(i - step) {
 			return i - step
 		}
 	}
@@ -62,11 +63,18 @@ func (su *Sudoku) backwardNext(i int) int {
 
 func (su *Sudoku) forwardNext(i int) int {
 	for step := 1; step < 81-i; step++ {
-		if su.Original[i+step] == 0 {
+		if !su.isPresetField(i + step) {
 			return i + step
 		}
 	}
 	return 81
+}
+
+func (su *Sudoku) isPresetField(pos int) bool {
+	if su.Original[pos] > 0 {
+		return true
+	}
+	return false
 }
 
 func inputParam() [81]uint8 {
@@ -128,58 +136,6 @@ func (su *Sudoku) isValidSet(poses [9]int) bool {
 	return true
 }
 
-func isValid9squares(rows [][]int) bool {
-	for i := 0; i < 3; i++ {
-		for j := 0; j < 3; j++ {
-			if !isValidSquare(rows, 3*i, 3*j) {
-				return false
-			}
-		}
-	}
-	return true
-}
-
-func isValidSquare(rows [][]int, row int, col int) bool {
-	set := iset.New()
-	for i := 0; i < 3; i++ {
-		for j := 0; j < 3; j++ {
-			val := rows[row+i][col+j]
-			if val == 0 {
-				continue
-			}
-			if set.Has(val) {
-				return false
-			}
-			set.Add(val)
-		}
-	}
-	return true
-}
-
-func isValidColumns(rows [][]int) bool {
-	for j := 0; j < 9; j++ {
-		if !isValidOneColumn(rows, j) {
-			return false
-		}
-	}
-	return true
-}
-
-func isValidOneColumn(rows [][]int, col int) bool {
-	set := iset.New()
-	for i := 0; i < 9; i++ {
-		if rows[i][col] == 0 {
-			continue
-		}
-		if !set.Has(rows[i][col]) {
-			set.Add(rows[i][col])
-			continue
-		}
-		return false
-	}
-	return true
-}
-
 func find3x3Square(idx int) [9]int {
 	a := idx / 9
 	b := idx % 9
@@ -199,4 +155,13 @@ func (su *Sudoku) isValid3x3Square(idx int) bool {
 type Sudoku struct {
 	Solution [81]uint8
 	Original [81]uint8
+}
+
+func (su *Sudoku) printSolution(solution [81]uint8) {
+	for i, num := range solution {
+		fmt.Print(num)
+		if i%9 == 8 {
+			fmt.Println()
+		}
+	}
 }

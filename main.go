@@ -17,6 +17,8 @@ func main() {
 		Original: originalProblem,
 		Solution: solution,
 	}
+	fmt.Println("The input sudoku is:")
+	su.printArray2D(su.Original)
 
 	for i := 0; i <= 80; {
 		if i == -1 {
@@ -46,7 +48,8 @@ func main() {
 
 		temp := su.forwardNext(i)
 		if temp == 81 {
-			su.printSolution(su.Solution)
+			fmt.Println("Found a solution:")
+			su.printArray2D(su.Solution)
 			i = su.backwardNext(i)
 			continue
 		}
@@ -110,7 +113,6 @@ func inputParam() [81]uint8 {
 			arr[i*9+j] = uint8(gold)
 		}
 	}
-	log.Print(arr)
 	return arr
 }
 
@@ -168,11 +170,16 @@ type Sudoku struct {
 	Original [81]uint8
 }
 
-func (su *Sudoku) printSolution(solution [81]uint8) {
+func (su *Sudoku) printArray2D(solution [81]uint8) {
 	for i, num := range solution {
-		fmt.Print(num)
+		fmt.Printf("%d ", num)
 		if i%9 == 8 {
-			fmt.Println()
+			fmt.Print("\n")
 		}
 	}
+	fmt.Print("\n\n")
+}
+
+func (su *Sudoku) printArray2DToFile(solution [81]uint8, fileName string) {
+
 }

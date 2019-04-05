@@ -18,7 +18,11 @@ func main() {
 		Solution: solution,
 	}
 
-	for i := 0; i >= 0 && i < 81; {
+	for i := 0; i <= 80; {
+		if i == -1 {
+			fmt.Println("no more solutions")
+			break
+		}
 		if su.isPresetField(i) {
 			i = su.forwardNext(i)
 			continue
@@ -26,22 +30,29 @@ func main() {
 		foundAGold := false
 		for maybeGold := su.Solution[i] + 1; maybeGold <= uint8(9); maybeGold++ {
 			su.Solution[i] = maybeGold
-			su.printSolution(su.Solution)
-			fmt.Println()
+			//su.printSolution(su.Solution)
+			//fmt.Println()
 			if !su.isAllValid(i) {
 				continue
 			}
 			foundAGold = true
 			break
 		}
+
 		if foundAGold == false {
 			i = su.backwardNext(i)
-		} else {
-
-			i = su.forwardNext(i)
+			continue
 		}
+
+		temp := su.forwardNext(i)
+		if temp == 81 {
+			su.printSolution(su.Solution)
+			i = su.backwardNext(i)
+			continue
+		}
+		i = temp
+		continue
 	}
-	su.printSolution(su.Solution)
 }
 
 func (su *Sudoku) isAllValid(pos int) bool {
@@ -53,7 +64,7 @@ func (su *Sudoku) isAllValid(pos int) bool {
 
 func (su *Sudoku) backwardNext(i int) int {
 	su.Solution[i] = 0
-	for step := 1; step < i; step++ {
+	for step := 1; step <= i; step++ {
 		if !su.isPresetField(i - step) {
 			return i - step
 		}

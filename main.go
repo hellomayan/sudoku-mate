@@ -10,7 +10,10 @@ import (
 	"github.com/scylladb/go-set/u8set"
 )
 
+var silent bool
+
 func main() {
+	foundTotal := 0
 	originalProblem := inputParam()
 	solution := originalProblem
 	su := Sudoku{
@@ -48,14 +51,18 @@ func main() {
 
 		temp := su.forwardNext(i)
 		if temp == 81 {
-			fmt.Println("Found a solution:")
-			su.printArray2D(su.Solution)
+			foundTotal++
+			if !silent {
+				fmt.Printf("Found the %d th solution:\n", foundTotal)
+				su.printArray2D(su.Solution)
+			}
 			i = su.backwardNext(i)
 			continue
 		}
 		i = temp
 		continue
 	}
+	fmt.Printf("Found a total of %d solutions\n", foundTotal)
 }
 
 func (su *Sudoku) isAllValid(pos int) bool {
@@ -92,11 +99,7 @@ func (su *Sudoku) isPresetField(pos int) bool {
 }
 
 func inputParam() [81]uint8 {
-	name := "problem.csv"
-	f, _ := os.Open(name)
-	defer f.Close()
-
-	reader := csv.NewReader(f)
+	reader := csv.NewReader(os.Stdin)
 	reader.Comma = ','
 	records, err := reader.ReadAll()
 	if err != nil {

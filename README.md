@@ -1,2 +1,2 @@
-# sudokuSolver
-Find all solutions to a sudoku problem. 
+# sudoku-mate
+A library to all solutions to a sudoku problem. 

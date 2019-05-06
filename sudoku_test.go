@@ -10,11 +10,11 @@ import (
 )
 
 func TestSudoku(t *testing.T) {
-	originalProblem := inputParam()
+	sudoku := inputParam()
 	fmt.Println("The input sudoku is:")
-	originalProblem.printArray2D()
+	printArray2D(sudoku.problem)
 
-	solutions := originalProblem.FindSolutions()
+	solutions := sudoku.FindSolutions()
 
 	if len(solutions) == 0 {
 		t.Fail()
@@ -22,7 +22,7 @@ func TestSudoku(t *testing.T) {
 
 	fmt.Printf("Printing all the solutions, total=%d\n", len(solutions))
 	for _, solution := range solutions {
-		solution.printArray2D()
+		printArray2D(solution)
 	}
 
 }
@@ -39,7 +39,7 @@ func inputParam() *Sudoku {
 	if err != nil {
 		log.Fatal(err)
 	}
-	arr := &Sudoku{}
+	arr := [81]uint8{}
 
 	for i, record := range records {
 		for j, s := range record {
@@ -50,5 +50,5 @@ func inputParam() *Sudoku {
 			arr[i*9+j] = uint8(gold)
 		}
 	}
-	return arr
+	return NewSudokuUnroll(arr)
 }

@@ -60,7 +60,6 @@ func main() {
 			continue
 		}
 		i = temp
-		continue
 	}
 	fmt.Printf("Found a total of %d solutions\n", foundTotal)
 }

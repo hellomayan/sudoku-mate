@@ -1,9 +1,10 @@
 package sudoku
-import(
+
+import (
 	"fmt"
+
 	"github.com/scylladb/go-set/u8set"
 )
-
 
 func (su *Sudoku) isAllValid(pos int) bool {
 	if !su.isValid3x3Square(pos) || !su.isValidRow(pos) || !su.isValidColumn(pos) {
@@ -12,19 +13,19 @@ func (su *Sudoku) isAllValid(pos int) bool {
 	return true
 }
 
-func (su *Sudoku) backwardNext(i int) int {
+func (su *Sudoku) backwardNext(orig *Sudoku, i int) int {
 	su[i] = 0
 	for step := 1; step <= i; step++ {
-		if !su.IsPresetField(i - step) {
+		if !su.IsPresetField(orig, i-step) {
 			return i - step
 		}
 	}
 	return -1
 }
 
-func (su *Sudoku) forwardNext(i int) int {
+func (su *Sudoku) forwardNext(orig *Sudoku, i int) int {
 	for step := 1; step < 81-i; step++ {
-		if !su.IsPresetField(i + step) {
+		if !su.IsPresetField(orig, i+step) {
 			return i + step
 		}
 	}
@@ -32,8 +33,8 @@ func (su *Sudoku) forwardNext(i int) int {
 }
 
 //IsPresetField is used to check whether a field in the original problem is preset
-func (su *Sudoku) IsPresetField(pos int) bool {
-	if su[pos] > 0 {
+func (su *Sudoku) IsPresetField(orig *Sudoku, pos int) bool {
+	if orig[pos] > 0 {
 		return true
 	}
 	return false
@@ -98,11 +99,11 @@ func (su *Sudoku) printArray2D() {
 }
 
 //NewSudoku is used to create a Sudoku problem
-func NewSudoku(input [9][9]uint8)Sudoku{
-	unrolled :=[81]uint8{}
-	for i:=0;i<9;i++{
-		for j:=0;j<9;j++{
-			unrolled[i*9+j]=input[i][j]
+func NewSudoku(input [9][9]uint8) Sudoku {
+	unrolled := [81]uint8{}
+	for i := 0; i < 9; i++ {
+		for j := 0; j < 9; j++ {
+			unrolled[i*9+j] = input[i][j]
 		}
 	}
 	return unrolled
@@ -112,21 +113,19 @@ func NewSudoku(input [9][9]uint8)Sudoku{
 type Sudoku [81]uint8
 
 //FindSolutions finds all the solutions of a sudoku problem
-func (su *Sudoku)FindSolutions() []*Sudoku{
-	
-	solutions :=make([]*Sudoku,0,0)
-	solution :=&Sudoku{}
-	*solution=*su
+func (problem *Sudoku) FindSolutions() []Sudoku {
 
-	solution.printArray2D()
+	solutions := make([]Sudoku, 0, 0)
+	solution := &Sudoku{}
+	*solution = *problem
 
 	for i := 0; i <= 80; {
 		if i == -1 {
-			fmt.Println("no more solutions")
+			//fmt.Println("no more solutions")
 			break
 		}
-		if su.IsPresetField(i) {
-			i = solution.forwardNext(i)
+		if problem.IsPresetField(problem, i) {
+			i = solution.forwardNext(problem, i)
 			continue
 		}
 		foundAGold := false
@@ -141,22 +140,21 @@ func (su *Sudoku)FindSolutions() []*Sudoku{
 		}
 
 		if foundAGold == false {
-			i = solution.backwardNext(i)
+			i = solution.backwardNext(problem, i)
 			continue
 		}
 
-		temp := solution.forwardNext(i)
+		temp := solution.forwardNext(problem, i)
 		if temp == 81 {
-			solutions=append(solutions,solution)
+			solutions = append(solutions, *solution)
 
-			fmt.Printf("Found a new solution:\n")
-			
-			i = solution.backwardNext(i)
+			//fmt.Printf("Found a new solution:\n")
+			//solution.printArray2D()
+			i = solution.backwardNext(problem, i)
 			continue
 		}
 		i = temp
-		continue
 	}
-	
+
 	return solutions
 }

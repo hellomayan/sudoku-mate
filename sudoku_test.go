@@ -7,31 +7,31 @@ import (
 	"os"
 	"strconv"
 	"testing"
-
 )
+
 func TestSudoku(t *testing.T) {
 	originalProblem := inputParam()
 	fmt.Println("The input sudoku is:")
 	originalProblem.printArray2D()
 
-	solutions :=originalProblem.FindSolutions()
-	
-	if len(solutions)!=1{
+	solutions := originalProblem.FindSolutions()
+
+	if len(solutions) == 0 {
 		t.Fail()
 	}
-	
-	for _,solution :=range solutions {
+
+	fmt.Printf("Printing all the solutions, total=%d\n", len(solutions))
+	for _, solution := range solutions {
 		solution.printArray2D()
 	}
 
 }
 
-
 func inputParam() *Sudoku {
-	fileName :="problem_4.csv"
-	f,err :=os.Open(fileName)
-	if err!=nil{
-		log.Fatalf("fail to open file %s",fileName)
+	fileName := "testdata/problem_0_11_solutions.csv"
+	f, err := os.Open(fileName)
+	if err != nil {
+		log.Fatalf("fail to open file %s", fileName)
 	}
 	reader := csv.NewReader(f)
 	reader.Comma = ','

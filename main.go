@@ -5,15 +5,19 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"runtime"
 	"strconv"
+	"sync"
 
 	"github.com/scylladb/go-set/u8set"
 )
 
-var silent bool
+var (
+	silent bool
+	wg     sync.WaitGroup
+)
 
 func main() {
-	foundTotal := 0
 	originalProblem := inputParam()
 	solution := originalProblem
 	su := Sudoku{
@@ -21,52 +25,17 @@ func main() {
 		Solution: solution,
 	}
 	fmt.Println("The input sudoku is:")
-	su.printArray2D(su.Original)
-
-	for i := 0; i <= 80; {
-		if i == -1 {
-			fmt.Println("no more solutions")
-			break
-		}
-		if su.isPresetField(i) {
-			i = su.forwardNext(i)
-			continue
-		}
-		foundAGold := false
-		for maybeGold := su.Solution[i] + 1; maybeGold <= uint8(9); maybeGold++ {
-			su.Solution[i] = maybeGold
-			//su.printSolution(su.Solution)
-			//fmt.Println()
-			if !su.isAllValid(i) {
-				continue
-			}
-			foundAGold = true
-			break
-		}
-
-		if foundAGold == false {
-			i = su.backwardNext(i)
-			continue
-		}
-
-		temp := su.forwardNext(i)
-		if temp == 81 {
-			foundTotal++
-			if !silent {
-				fmt.Printf("Found the %d th solution:\n", foundTotal)
-				su.printArray2D(su.Solution)
-			}
-			i = su.backwardNext(i)
-			continue
-		}
-		i = temp
-		continue
-	}
-	fmt.Printf("Found a total of %d solutions\n", foundTotal)
+	printArray2D(su.Original)
+	//su.simpleIteration()
+	//wg := sync.WaitGroup{}
+	core := runtime.NumCPU()
+	//wg.Add(core)
+	su.parallelSearch(core)
+	//wg.Wait()
 }
 
-func (su *Sudoku) isAllValid(pos int) bool {
-	if !su.isValid3x3Square(pos) || !su.isValidRow(pos) || !su.isValidColumn(pos) {
+func isAllValid(square81 [81]uint8, pos int) bool {
+	if !isValid3x3Square(square81, pos) || !isValidRow(square81, pos) || !isValidColumn(square81, pos) {
 		return false
 	}
 	return true
@@ -119,28 +88,28 @@ func inputParam() [81]uint8 {
 	return arr
 }
 
-func (su *Sudoku) isValidColumn(pos int) bool {
+func isValidColumn(square81 [81]uint8, pos int) bool {
 	colStart := pos % 9
 	colPoses := [9]int{}
 	for i := 0; i < 9; i++ {
 		colPoses[i] = colStart + 9*i
 	}
-	return su.isValidSet(colPoses)
+	return isValidSet(square81, colPoses)
 }
 
-func (su *Sudoku) isValidRow(pos int) bool {
+func isValidRow(square81 [81]uint8, pos int) bool {
 	rowStart := pos - pos%9
 	rowPoses := [9]int{}
 	for j := 0; j < 9; j++ {
 		rowPoses[j] = rowStart + j
 	}
-	return su.isValidSet(rowPoses)
+	return isValidSet(square81, rowPoses)
 }
 
-func (su *Sudoku) isValidSet(poses [9]int) bool {
+func isValidSet(square81 [81]uint8, poses [9]int) bool {
 	m := u8set.New()
 	for _, pos := range poses {
-		gold := su.Solution[pos]
+		gold := square81[pos]
 		if gold == 0 {
 			continue
 		}
@@ -162,9 +131,9 @@ func find3x3Square(idx int) [9]int {
 	return arr
 }
 
-func (su *Sudoku) isValid3x3Square(idx int) bool {
+func isValid3x3Square(square81 [81]uint8, idx int) bool {
 	squarePoses := find3x3Square(idx)
-	return su.isValidSet(squarePoses)
+	return isValidSet(square81, squarePoses)
 }
 
 //Sudoku is the problem
@@ -173,8 +142,8 @@ type Sudoku struct {
 	Original [81]uint8
 }
 
-func (su *Sudoku) printArray2D(solution [81]uint8) {
-	for i, num := range solution {
+func printArray2D(square81 [81]uint8) {
+	for i, num := range square81 {
 		fmt.Printf("%d ", num)
 		if i%9 == 8 {
 			fmt.Print("\n")
@@ -183,6 +152,114 @@ func (su *Sudoku) printArray2D(solution [81]uint8) {
 	fmt.Print("\n\n")
 }
 
-func (su *Sudoku) printArray2DToFile(solution [81]uint8, fileName string) {
+func (su *Sudoku) simpleIteration() {
+	foundTotal := 0
+	for i := 0; i <= 80; {
+		if i == -1 {
+			fmt.Println("no more solutions")
+			break
+		}
+		if su.isPresetField(i) {
+			i = su.forwardNext(i)
+			continue
+		}
+		foundAGold := false
+		for maybeGold := su.Solution[i] + 1; maybeGold <= uint8(9); maybeGold++ {
+			su.Solution[i] = maybeGold
+			//su.printSolution(su.Solution)
+			//fmt.Println()
+			if !isAllValid(su.Solution, i) {
+				continue
+			}
+			foundAGold = true
+			break
+		}
 
+		if foundAGold == false {
+			i = su.backwardNext(i)
+			continue
+		}
+
+		temp := su.forwardNext(i)
+		if temp == 81 {
+			foundTotal++
+			if !silent {
+				fmt.Printf("Found the %d th solution:\n", foundTotal)
+				printArray2D(su.Solution)
+			}
+			i = su.backwardNext(i)
+			continue
+		}
+		i = temp
+		continue
+	}
+	fmt.Printf("Found a total of %d solutions\n", foundTotal)
+}
+
+func (su *Sudoku) parallelSearch(core int) {
+	taskChan := make(chan *task, 10000)
+	su.newWorkers(taskChan, core)
+	tsk := &task{
+		solution:   su.Solution,
+		currentPos: forwardNextPara(su.Solution),
+	}
+	taskChan <- tsk
+}
+
+type task struct {
+	solution   [81]uint8
+	currentPos int
+}
+
+type workers struct {
+	ws []worker
+}
+
+func (su *Sudoku) newWorkers(taskChan chan *task, core int) {
+	workers := make([]worker, core)
+	for i, w := range workers {
+		w.id = i
+		w.taskChan = taskChan
+		w.doTask()
+	}
+}
+
+type worker struct {
+	id       int
+	taskChan chan *task
+}
+
+func (w *worker) doTask() {
+	for {
+		select {
+		case tk := <-w.taskChan:
+			fmt.Printf("worker %d receiving new task, current pos: %d", w.id, tk.currentPos)
+			for i := uint8(1); i < 10; i++ {
+				tk.solution[tk.currentPos] = i
+				if isAllValid(tk.solution, tk.currentPos) {
+					if forwardNextPara(tk.solution) == 81 {
+						fmt.Printf("Found a solution:\n")
+						printArray2D(tk.solution)
+						break
+					}
+					newTK := task{
+						solution:   tk.solution,
+						currentPos: forwardNextPara(tk.solution),
+					}
+					w.taskChan <- &newTK
+				}
+			}
+		default:
+			break
+		}
+	}
+}
+
+func forwardNextPara(s [81]uint8) int {
+	for i := 0; i <= 80; i++ {
+		if s[i] == 0 {
+			return i
+		}
+	}
+	return 81
 }

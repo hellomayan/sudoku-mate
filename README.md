@@ -1,4 +1,4 @@
-## sudokumore/solver
+## sudokutools/solver-go
 sudoku-mate is a library to find all solutions to a sudoku problem, although usually a sudoku only has one solution.
 ## How to use it
 #### Input

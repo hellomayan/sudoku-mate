@@ -111,6 +111,7 @@ func NewSudoku(input [9][9]uint8) *Sudoku {
 	}
 }
 
+//NewSudokuUnroll is used to create a Sudoku problem with a already unrolled input
 func NewSudokuUnroll(input [81]uint8) *Sudoku {
 	return &Sudoku{
 		problem:  input,
@@ -119,12 +120,13 @@ func NewSudokuUnroll(input [81]uint8) *Sudoku {
 }
 
 //Sudoku is a unrolled form of the sudoku problem
+//solution is a variable that keeps changing during the process of searching for a solution
 type Sudoku struct {
 	problem  [81]uint8
 	solution [81]uint8
 }
 
-//FindSolutions finds all the solutions of a sudoku problem
+//FindSolutions returns all the solutions of a sudoku problem
 func (s *Sudoku) FindSolutions() [][81]uint8 {
 
 	solutions := make([][81]uint8, 0, 0)

@@ -35,6 +35,8 @@ func TestFinalSolutions(t *testing.T) {
 
 func inputParam(fileName string) *Sudoku {
 	f, err := os.Open(fileName)
+	defer f.Close()
+
 	if err != nil {
 		log.Fatalf("fail to open file %s", fileName)
 	}
